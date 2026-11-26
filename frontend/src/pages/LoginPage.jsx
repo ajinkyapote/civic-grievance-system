@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { ShieldCheck, KeyRound, UserPlus, Eye, EyeOff, Lock, Mail, User, ArrowRight } from "lucide-react";
 import axiosClient from "../api/axiosClient";
 import { useAuth } from "../context/AuthContext";
+import { useLang } from "../context/LanguageContext";
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const { t } = useLang();
   const navigate = useNavigate();
   const [isRegister, setIsRegister] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -38,15 +40,14 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-68px)] flex items-center justify-center px-4 py-12 bg-gradient-to-b from-slate-100 to-slate-50">
+    <div className="min-h-[calc(100vh-116px)] flex items-center justify-center px-4 py-12 bg-gradient-to-b from-slate-100 to-slate-50">
       <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200/80 shadow-xl shadow-slate-200/50 overflow-hidden">
-        {/* Top Accent Header */}
         <div className="bg-slate-900 px-8 py-6 text-white">
           <div className="flex items-center gap-2.5 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-1">
-            <ShieldCheck className="w-4 h-4" /> Unified Access Gateway
+            <ShieldCheck className="w-4 h-4" /> {t.loginGateway}
           </div>
           <h1 className="text-xl font-bold tracking-tight">
-            {isRegister ? "Create Citizen Account" : "Sign In to CivicGov Command"}
+            {isRegister ? t.registerTitle : t.loginTitle}
           </h1>
           <p className="text-xs text-slate-400 mt-1">
             {isRegister
@@ -55,7 +56,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-8 space-y-5">
           {error && (
             <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-medium">
@@ -65,7 +65,7 @@ export default function LoginPage() {
 
           {isRegister && (
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Full Legal Name</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t.nameLabel}</label>
               <div className="relative">
                 <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
@@ -81,7 +81,7 @@ export default function LoginPage() {
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Email Address</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t.emailLabel}</label>
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
               <input
@@ -96,7 +96,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Password</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t.passwordLabel}</label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
               <input
@@ -124,7 +124,7 @@ export default function LoginPage() {
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 shadow-sm transition disabled:opacity-50"
           >
             {isRegister ? <UserPlus className="w-4 h-4" /> : <KeyRound className="w-4 h-4" />}
-            {loading ? "Authenticating..." : isRegister ? "Create Account" : "Sign In"}
+            {loading ? "Authenticating..." : isRegister ? t.createAccountBtn : t.signInBtn}
             {!loading && <ArrowRight className="w-4 h-4" />}
           </button>
 
@@ -138,7 +138,7 @@ export default function LoginPage() {
               }}
               className="text-blue-600 font-bold hover:underline"
             >
-              {isRegister ? "Sign In" : "Register Now"}
+              {isRegister ? t.signInBtn : "Register Now"}
             </button>
           </div>
         </form>

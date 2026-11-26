@@ -1,9 +1,11 @@
+import { useLang } from "../context/LanguageContext";
 import { useState, useEffect } from "react";
 import { Wrench, CheckCircle2, Camera } from "lucide-react";
 import axiosClient from "../api/axiosClient";
 import { useAuth } from "../context/AuthContext";
 
 export default function FieldEngineerPage() {
+  const { t } = useLang();
   const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [proofUrls, setProofUrls] = useState({});
@@ -41,7 +43,7 @@ export default function FieldEngineerPage() {
     <div className="max-w-5xl mx-auto p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-          <Wrench className="w-6 h-6 text-amber-600" /> Field Engineer Work Orders ({user?.name})
+          <Wrench className="w-6 h-6 text-amber-600" /> {t.fieldDeskTitle} ({user?.name})
         </h1>
         <p className="text-sm text-slate-600">
           Execute assigned repairs on-site, upload after-resolution photographic proof, and mark tickets resolved.

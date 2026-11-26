@@ -1,3 +1,4 @@
+import { useLang } from "../context/LanguageContext";
 import { useState, useEffect } from "react";
 import { Briefcase, UserPlus, Eye } from "lucide-react";
 import axiosClient from "../api/axiosClient";
@@ -5,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import TicketTimelineModal from "../components/TicketTimelineModal";
 
 export default function DepartmentOfficerPage() {
+  const { t } = useLang();
   const { user } = useAuth();
   const [issues, setIssues] = useState([]);
   const [engineers, setEngineers] = useState([]);
@@ -41,7 +43,7 @@ export default function DepartmentOfficerPage() {
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-          <Briefcase className="w-6 h-6 text-blue-600" /> {user?.department} Department Control Desk
+          <Briefcase className="w-6 h-6 text-blue-600" /> {user?.department} {t.deptDeskTitle}
         </h1>
         <p className="text-sm text-slate-600">
           Scoped exclusively to <strong>{user?.department}</strong> tickets, sorted by community severity score. Assign tickets to field engineers.

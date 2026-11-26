@@ -39,6 +39,8 @@ public class AdminController {
     private final IssueLogRepository issueLogRepository;
     private final UserRepository userRepository;
     private final WardRepository wardRepository;
+    private final com.civic.grievance.service.AuditChainService auditChainService;
+    private final LiveStreamController liveStreamController;
     private final PasswordEncoder passwordEncoder;
     private final BenchmarkService benchmarkService;
     private final DeduplicationService deduplicationService;
@@ -93,6 +95,32 @@ public class AdminController {
             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=civic-grievance-rti-audit.csv")
             .contentType(MediaType.parseMediaType("text/csv"))
             .body(sb.toString());
+    }
+
+    
+
+    @Data
+    public static class CreateWardRequest {
+        private String wardCode;
+        private String wardName;
+        private String zoneName;
+        private Double centerLatitude;
+        private Double centerLongitude;
+    }
+
+    @PostMapping("/wards")
+    public ResponseEntity<?> createWard(@RequestBody CreateWardRequest req) {
+        var ward = com.civic.grievance.entity.Ward.builder()
+            .wardCode(req.getWardCode())
+            .wardName(req.getWardName())
+            .zoneName(req.getZoneName())
+            .centerLat(req.getCenterLatitude())
+            .centerLng(req.getCenterLongitude())
+            .build();
+        var savedWard = wardRepository.save(ward);
+        auditChainService.recordEvent(savedWard.getWardCode(), "WARD_REGISTERED", "SUPER_ADMIN");
+        liveStreamController.broadcast("WARD_ADDED", savedWard);
+        return ResponseEntity.ok(savedWard);
     }
 
     @GetMapping("/ward-scorecards")
@@ -250,6 +278,8 @@ public class AdminController {
             dispatched++;
         }
 
+        auditChainService.recordEvent("BATCH_DISPATCH", "AUTO_DISPATCHED_" + dispatched, "AI_SCHEDULER");
+        liveStreamController.broadcast("AUTO_DISPATCH", Map.of("count", dispatched));
         return ResponseEntity.ok(Map.of("dispatchedCount", dispatched));
     }
 

@@ -1,9 +1,11 @@
+import { useLang } from "../context/LanguageContext";
 import { useState } from "react";
 import { FlaskConical, Play, Award } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from "recharts";
 import axiosClient from "../api/axiosClient";
 
 export default function BenchmarkPage() {
+  const { t } = useLang();
   const [results, setResults] = useState([]);
   const [running, setRunning] = useState(false);
 
@@ -31,7 +33,7 @@ export default function BenchmarkPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <FlaskConical className="w-6 h-6 text-indigo-600" /> Research Benchmarking & Hyperparameter Evaluation
+            <FlaskConical className="w-6 h-6 text-indigo-600" /> {t.benchmarkTitle}ing & Hyperparameter Evaluation
           </h1>
           <p className="text-sm text-slate-600">
             Simulates 500 urban complaints (200 distinct issues + 300 paraphrased duplicates with 5–40m GPS drift) to evaluate clustering accuracy.

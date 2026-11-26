@@ -1,3 +1,4 @@
+import { useLang } from "../context/LanguageContext";
 import { useState, useEffect } from "react";
 import { Send, GitMerge, CheckCircle2, ImagePlus, Star, RotateCcw, Sparkles, QrCode, MapPin, ShieldCheck, Wand2, Crosshair } from "lucide-react";
 import axiosClient from "../api/axiosClient";
@@ -26,6 +27,7 @@ const TEST_PRESETS = [
 ];
 
 export default function CitizenDashboardPage() {
+  const { t } = useLang();
   const [location, setLocation] = useState({ lat: 19.0178, lng: 73.0991 });
   const [publicIssues, setPublicIssues] = useState([]);
   const [myReports, setMyReports] = useState([]);
@@ -125,7 +127,7 @@ export default function CitizenDashboardPage() {
     <div className="max-w-7xl mx-auto p-6 space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Citizen Grievance Portal</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{t.citizenTitle}</h1>
           <p className="text-sm text-slate-600">
             Step 1: Click the map to drop a pin. Step 2: Describe the issue. Our AI checks for duplicates within 50m automatically.
           </p>
