@@ -8,6 +8,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -19,10 +20,6 @@ public class SlaMonitorService {
     private final MasterIssueRepository masterIssueRepository;
     private final PriorityScoringService priorityScoringService;
 
-    /**
-     * Checks unresolved tickets every 5 minutes. Any ticket past its SLA deadline
-     * receives a +2.5 emergency escalation boost so it rises to the top of triage queues.
-     */
     @Scheduled(fixedRate = 300000)
     @Transactional
     public void escalateOverdueTickets() {
@@ -39,19 +36,26 @@ public class SlaMonitorService {
         int escalatedCount = 0;
 
         for (MasterIssue issue : active) {
-            if (issue.getSlaDeadline() != null && now.isAfter(issue.getSlaDeadline())) {
+            if (issue.getSlaDeadline() == null) continue;
+            long minutesRemaining = Duration.between(now, issue.getSlaDeadline()).toMinutes();
+
+            if (minutesRemaining < 0) {
+                issue.setEscalationLevel(MasterIssue.EscalationLevel.L3_CRITICAL_BREACH);
                 double baseScore = priorityScoringService.calculateSeverityScore(issue);
-                double escalated = Math.round((baseScore + 2.5) * 100.0) / 100.0;
+                double escalated = Math.round((baseScore + 3.0) * 100.0) / 100.0;
                 if (issue.getSeverityScore() < escalated) {
                     issue.setSeverityScore(escalated);
-                    masterIssueRepository.save(issue);
-                    escalatedCount++;
                 }
+                masterIssueRepository.save(issue);
+                escalatedCount++;
+            } else if (minutesRemaining <= 240 && issue.getEscalationLevel() == MasterIssue.EscalationLevel.L1_NORMAL) {
+                issue.setEscalationLevel(MasterIssue.EscalationLevel.L2_SLA_WARNING);
+                masterIssueRepository.save(issue);
             }
         }
 
         if (escalatedCount > 0) {
-            log.info("SLA Monitor: Escalated {} overdue civic grievance ticket(s).", escalatedCount);
+            log.info("SLA Governance Engine: Flagged {} ticket(s) as L3_CRITICAL_BREACH.", escalatedCount);
         }
     }
 }

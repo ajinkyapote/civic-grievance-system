@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from "recharts";
-import { ShieldAlert, Database, Users, Layers, UserPlus, Download, Building2 } from "lucide-react";
+import { ShieldAlert, Database, Users, Layers, UserPlus, Download, Building2, Zap } from "lucide-react";
 import axiosClient from "../api/axiosClient";
 
 export default function SuperAdminPage() {
   const [analytics, setAnalytics] = useState(null);
   const [scorecards, setScorecards] = useState([]);
+  const [insights, setInsights] = useState([]);
   const [users, setUsers] = useState([]);
   const [seeding, setSeeding] = useState(false);
   const [staffForm, setStaffForm] = useState({
@@ -17,14 +18,16 @@ export default function SuperAdminPage() {
   });
 
   const loadData = async () => {
-    const [anaRes, scRes, usrRes] = await Promise.all([
+    const [anaRes, scRes, usrRes, insRes] = await Promise.all([
       axiosClient.get("/admin/analytics"),
       axiosClient.get("/admin/ward-scorecards"),
       axiosClient.get("/admin/users"),
+      axiosClient.get("/admin/predictive-insights"),
     ]);
     setAnalytics(anaRes.data);
     setScorecards(scRes.data);
     setUsers(usrRes.data);
+    setInsights(insRes.data);
   };
 
   useEffect(() => {
@@ -40,6 +43,12 @@ export default function SuperAdminPage() {
     document.body.appendChild(a);
     a.click();
     a.remove();
+  };
+
+  const handleAutoDispatch = async () => {
+    const res = await axiosClient.post("/admin/auto-dispatch");
+    alert(`Load-Balanced Scheduler dispatched ${res.data.dispatchedCount} ticket(s) to field crews!`);
+    loadData();
   };
 
   const handleSeed = async () => {
@@ -87,6 +96,12 @@ export default function SuperAdminPage() {
 
         <div className="flex flex-wrap gap-2">
           <button
+            onClick={handleAutoDispatch}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold flex items-center gap-2"
+          >
+            <Zap className="w-4 h-4" /> AI Auto-Dispatch Crews
+          </button>
+          <button
             onClick={handleExportCsv}
             className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-semibold flex items-center gap-2"
           >
@@ -119,6 +134,38 @@ export default function SuperAdminPage() {
           <div className="bg-white p-5 rounded-xl border border-slate-200">
             <div className="text-xs font-bold uppercase text-amber-600">Workload Saved</div>
             <div className="text-3xl font-bold text-amber-600 mt-1">{analytics.deduplicationRatePercent}%</div>
+          </div>
+        </div>
+      )}
+
+      {/* Predictive Preventive Maintenance Advisory */}
+      {insights.length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Zap className="w-5 h-5 text-amber-500" /> Predictive Ward Infrastructure & Preventive Budget Advisory
+            </h2>
+            <span className="text-xs text-slate-500">Generated from Spatial-Lexical Cluster Density</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {insights.map((ins) => (
+              <div key={ins.wardCode} className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-mono font-bold text-indigo-700">{ins.wardCode} • {ins.wardName}</span>
+                  <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                    ins.riskLevel === "HIGH_INFRASTRUCTURE_STRESS"
+                      ? "bg-red-100 text-red-800"
+                      : "bg-amber-100 text-amber-800"
+                  }`}>
+                    {ins.riskLevel.replaceAll("_", " ")}
+                  </span>
+                </div>
+                <div className="text-xs font-semibold text-slate-700">
+                  Primary Bottleneck: <span className="text-slate-900">{ins.primaryStressDept}</span> ({ins.citizenImpactVolume} citizen reports)
+                </div>
+                <div className="text-xs text-slate-600">{ins.recommendedAction}</div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -167,23 +214,45 @@ export default function SuperAdminPage() {
         </div>
       </div>
 
-      {analytics && (
-        <div className="bg-white p-6 rounded-xl border border-slate-200">
-          <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <Layers className="w-5 h-5 text-blue-600" /> City-Wide Ticket Reduction Chart
-          </h2>
-          <div className="h-60 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} layout="vertical" margin={{ left: 30, right: 30 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" allowDecimals={false} />
-                <YAxis type="category" dataKey="name" width={160} tick={{ fontSize: 12 }} />
-                <Tooltip />
-                <Bar dataKey="count" radius={[0, 6, 6, 0]}>
-                  {chartData.map((entry, idx) => <Cell key={idx} fill={entry.color} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+      {analytics && analytics.issuesByCategory && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white p-6 rounded-xl border border-slate-200">
+            <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <Layers className="w-5 h-5 text-blue-600" /> City-Wide Ticket Reduction Chart
+            </h2>
+            <div className="h-60 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} layout="vertical" margin={{ left: 20, right: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" allowDecimals={false} />
+                  <YAxis type="category" dataKey="name" width={150} tick={{ fontSize: 12 }} />
+                  <Tooltip />
+                  <Bar dataKey="count" radius={[0, 6, 6, 0]}>
+                    {chartData.map((entry, idx) => <Cell key={idx} fill={entry.color} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl border border-slate-200">
+            <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-indigo-600" /> Master Dockets by Municipal Department
+            </h2>
+            <div className="h-60 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={Object.entries(analytics.issuesByCategory).map(([dept, count]) => ({ dept, count }))}
+                  margin={{ left: 0, right: 20 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="dept" tick={{ fontSize: 12 }} />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#4f46e5" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
       )}
