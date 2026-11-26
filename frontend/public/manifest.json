@@ -1,0 +1,9 @@
+{
+  "name": "CivicGov Enterprise Command",
+  "short_name": "CivicGov",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "description": "Smart City Geo-Spatial & Lexical Civic Grievance Redressal Portal"
+}

@@ -1,0 +1,32 @@
+export const TRANSLATIONS = {
+  en: {
+    badge: "Live Municipal Operations Feed",
+    title: "Public Civic Transparency & Ward Command",
+    subtitle: "Real-time geo-fenced infrastructure tracking, automated duplicate clustering, and verifiable field resolution audits.",
+    reportBtn: "Report a Grievance",
+    kpiReports: "Citizen Reports Processed",
+    kpiMaster: "Active Master Dockets",
+    kpiCrews: "Crews Dispatched",
+    kpiResolved: "Verified Resolved",
+  },
+  mr: {
+    badge: "थेट महानगरपालिका कार्यप्रणाली",
+    title: "सार्वजनिक नागरी पारदर्शकता आणि प्रभाग नियंत्रण कक्ष",
+    subtitle: "जीपीएस-आधारित नागरी तक्रार नोंदणी, स्वयंचलित डुप्लिकेट एकत्रीकरण आणि कामाच्या पुराव्यासह पारदर्शक निपटारा.",
+    reportBtn: "तक्रार नोंदवा",
+    kpiReports: "एकूण प्राप्त नागरी तक्रारी",
+    kpiMaster: "सक्रिय मुख्य तक्रार क्रमांक",
+    kpiCrews: "कार्यरत पथके",
+    kpiResolved: "पूर्ण झालेली कामे",
+  },
+  hi: {
+    badge: "लाइव नगर निगम संचालन फ़ीड",
+    title: "सार्वजनिक नागरिक पारदर्शिता एवं वार्ड कमांड पोर्टल",
+    subtitle: "जीपीएस-आधारित बुनियादी ढांचा ट्रैकिंग, स्वचालित डुप्लिकेट क्लस्टरिंग और प्रमाणित समाधान ऑडिट।",
+    reportBtn: "शिकायत दर्ज करें",
+    kpiReports: "कुल नागरिक शिकायतें",
+    kpiMaster: "सक्रिय मुख्य टिकट",
+    kpiCrews: "तैनात फील्ड टीमें",
+    kpiResolved: "सत्यापित समाधान",
+  },
+};

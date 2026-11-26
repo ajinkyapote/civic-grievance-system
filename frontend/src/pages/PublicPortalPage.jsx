@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { Globe, Eye, Filter, ThumbsUp, MapPin, Search, Cpu, UserCheck, CheckCircle2, Inbox, ArrowUpRight } from "lucide-react";
+import { Globe, Eye, Filter, ThumbsUp, MapPin, Search, Cpu, UserCheck, CheckCircle2, Inbox, ArrowUpRight, Languages } from "lucide-react";
 import axiosClient from "../api/axiosClient";
 import { useAuth } from "../context/AuthContext";
 import IssueMap from "../components/IssueMap";
 import TicketTimelineModal from "../components/TicketTimelineModal";
 import SlaBadge from "../components/SlaBadge";
+import { TRANSLATIONS } from "../utils/i18n";
 
 const STATUS_BADGE = {
   OPEN: "bg-red-50 text-red-700 border-red-200",
@@ -19,6 +20,9 @@ const STATUS_BADGE = {
 export default function PublicPortalPage() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
+  const [lang, setLang] = useState("en");
+  const t = TRANSLATIONS[lang];
+
   const [issues, setIssues] = useState([]);
   const [wards, setWards] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState("ALL");
@@ -75,48 +79,73 @@ export default function PublicPortalPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-      {/* Hero & Quick Action Header */}
+      {/* Hero, Language Switcher & Quick Action Header */}
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 pb-6">
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold">
-            <Globe className="w-3.5 h-3.5" /> Live Municipal Operations Feed
+            <Globe className="w-3.5 h-3.5" /> {t.badge}
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Public Civic Transparency & Ward Command
+            {t.title}
           </h1>
           <p className="text-sm text-slate-600 max-w-2xl">
-            Real-time geo-fenced infrastructure tracking, automated duplicate clustering, and verifiable field resolution audits.
+            {t.subtitle}
           </p>
         </div>
 
-        <Link
-          to={user?.role === "CITIZEN" ? "/citizen" : "/login"}
-          className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold flex items-center gap-1.5 shadow-sm transition"
-        >
-          Report a Grievance <ArrowUpRight className="w-4 h-4" />
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Language Switcher Pill */}
+          <div className="inline-flex items-center gap-1 rounded-xl border border-slate-300 bg-white p-1 shadow-sm">
+            <Languages className="w-4 h-4 text-slate-500 ml-2 mr-1" />
+            {[
+              { code: "en", label: "EN" },
+              { code: "mr", label: "मराठी" },
+              { code: "hi", label: "हिंदी" },
+            ].map((item) => (
+              <button
+                key={item.code}
+                type="button"
+                onClick={() => setLang(item.code)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  lang === item.code
+                    ? "bg-slate-900 text-white shadow-sm"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          <Link
+            to={user?.role === "CITIZEN" ? "/citizen" : "/login"}
+            className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold flex items-center gap-1.5 shadow-sm transition"
+          >
+            {t.reportBtn} <ArrowUpRight className="w-4 h-4" />
+          </Link>
+        </div>
       </div>
 
       {/* Live Municipal KPI Command Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Citizen Reports Processed</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-400">{t.kpiReports}</div>
           <div className="text-3xl font-extrabold text-slate-900 mt-1.5">
             {issues.reduce((acc, i) => acc + (i.duplicateCount || 1), 0)}
           </div>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-          <div className="text-xs font-bold uppercase tracking-wider text-blue-600">Active Master Dockets</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-blue-600">{t.kpiMaster}</div>
           <div className="text-3xl font-extrabold text-blue-700 mt-1.5">{issues.length}</div>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-          <div className="text-xs font-bold uppercase tracking-wider text-amber-600">Crews Dispatched</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-amber-600">{t.kpiCrews}</div>
           <div className="text-3xl font-extrabold text-amber-600 mt-1.5">
             {issues.filter((i) => i.status === "ASSIGNED" || i.status === "IN_PROGRESS").length}
           </div>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-          <div className="text-xs font-bold uppercase tracking-wider text-emerald-600">Verified Resolved</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-emerald-600">{t.kpiResolved}</div>
           <div className="text-3xl font-extrabold text-emerald-700 mt-1.5">
             {issues.filter((i) => i.status === "RESOLVED" || i.status === "CLOSED").length}
           </div>

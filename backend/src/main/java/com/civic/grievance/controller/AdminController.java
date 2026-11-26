@@ -3,23 +3,28 @@ package com.civic.grievance.controller;
 import com.civic.grievance.dto.AnalyticsResponse;
 import com.civic.grievance.dto.IssueReportRequest;
 import com.civic.grievance.dto.IssueReportResponse;
+import com.civic.grievance.entity.IssueLog;
 import com.civic.grievance.entity.MasterIssue;
 import com.civic.grievance.entity.User;
 import com.civic.grievance.repository.ComplaintReportRepository;
+import com.civic.grievance.repository.IssueLogRepository;
 import com.civic.grievance.repository.MasterIssueRepository;
 import com.civic.grievance.repository.UserRepository;
 import com.civic.grievance.repository.WardRepository;
 import com.civic.grievance.service.BenchmarkService;
 import com.civic.grievance.service.DeduplicationService;
-import com.civic.grievance.service.TicketWorkflowService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -31,12 +36,12 @@ public class AdminController {
 
     private final MasterIssueRepository masterIssueRepository;
     private final ComplaintReportRepository complaintReportRepository;
+    private final IssueLogRepository issueLogRepository;
     private final UserRepository userRepository;
     private final WardRepository wardRepository;
     private final PasswordEncoder passwordEncoder;
     private final BenchmarkService benchmarkService;
     private final DeduplicationService deduplicationService;
-    private final TicketWorkflowService ticketWorkflowService;
 
     @Data
     public static class CreateStaffRequest {
@@ -93,7 +98,7 @@ public class AdminController {
     @GetMapping("/ward-scorecards")
     public ResponseEntity<?> getWardScorecards() {
         var allIssues = masterIssueRepository.findAll();
-        var now = java.time.LocalDateTime.now();
+        var now = LocalDateTime.now();
 
         var scorecards = wardRepository.findAll().stream().map(w -> {
             var wardIssues = allIssues.stream()
@@ -116,7 +121,7 @@ public class AdminController {
                 .average()
                 .orElse(0.0);
 
-            java.util.Map<String, Object> row = new java.util.LinkedHashMap<>();
+            Map<String, Object> row = new LinkedHashMap<>();
             row.put("wardCode", w.getWardCode());
             row.put("wardName", w.getWardName());
             row.put("zoneName", w.getZoneName());
@@ -129,6 +134,50 @@ public class AdminController {
         }).toList();
 
         return ResponseEntity.ok(scorecards);
+    }
+
+    @GetMapping("/predictive-insights")
+    public ResponseEntity<?> getPredictiveInsights() {
+        var allIssues = masterIssueRepository.findAll();
+        var insights = new java.util.ArrayList<>();
+
+        for (var ward : wardRepository.findAll()) {
+            var wardIssues = allIssues.stream()
+                .filter(i -> i.getWard() != null && i.getWard().getId().equals(ward.getId()))
+                .toList();
+
+            if (wardIssues.isEmpty()) continue;
+
+            var topCategoryEntry = wardIssues.stream()
+                .collect(Collectors.groupingBy(m -> m.getCategory().name(), Collectors.summingInt(MasterIssue::getDuplicateCount)))
+                .entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .orElse(null);
+
+            if (topCategoryEntry != null) {
+                String dept = topCategoryEntry.getKey();
+                int volume = topCategoryEntry.getValue();
+                String riskLevel = volume >= 4 ? "HIGH_INFRASTRUCTURE_STRESS" : volume >= 2 ? "MODERATE_RECURRING" : "STABLE";
+                String recommendation = switch (dept) {
+                    case "ROADS" -> "Schedule preventive asphalt resurfacing & drainage inspection in " + ward.getWardName();
+                    case "WATER" -> "Conduct ultrasonic pipeline pressure audit & valve replacement in " + ward.getWardName();
+                    case "ELECTRICITY" -> "Deploy underground cabling & transformer load-balance check in " + ward.getWardName();
+                    case "SANITATION" -> "Increase daily compactor frequency & install high-capacity smart bins in " + ward.getWardName();
+                    default -> "Allocate routine ward inspection crew in " + ward.getWardName();
+                };
+
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("wardCode", ward.getWardCode());
+                item.put("wardName", ward.getWardName());
+                item.put("primaryStressDept", dept);
+                item.put("citizenImpactVolume", volume);
+                item.put("riskLevel", riskLevel);
+                item.put("recommendedAction", recommendation);
+                insights.add(item);
+            }
+        }
+
+        return ResponseEntity.ok(insights);
     }
 
     @GetMapping("/analytics")
@@ -161,32 +210,43 @@ public class AdminController {
     }
 
     @PostMapping("/auto-dispatch")
-    public ResponseEntity<?> autoDispatchOpenTickets(
-            @org.springframework.security.core.annotation.AuthenticationPrincipal User admin) {
-        var openTickets = masterIssueRepository.findByStatusInOrderBySeverityScoreDesc(
+    public ResponseEntity<?> autoDispatchOpenTickets(@AuthenticationPrincipal User admin) {
+        List<MasterIssue> openTickets = masterIssueRepository.findByStatusInOrderBySeverityScoreDesc(
             List.of(MasterIssue.Status.OPEN, MasterIssue.Status.REOPENED)
         );
+        List<User> allUsers = userRepository.findAll();
         int dispatched = 0;
 
         for (MasterIssue ticket : openTickets) {
             if (ticket.getCategory() == MasterIssue.Category.OTHER) continue;
             User.Department dept = User.Department.valueOf(ticket.getCategory().name());
-            var engineers = userRepository.findByRoleAndDepartmentAndActiveTrue(User.Role.FIELD_ENGINEER, dept);
+
+            List<User> engineers = allUsers.stream()
+                .filter(u -> Boolean.TRUE.equals(u.getActive()) && u.getRole() == User.Role.FIELD_ENGINEER && u.getDepartment() == dept)
+                .toList();
+
             if (engineers.isEmpty()) continue;
 
-            // Pick Field Engineer with lowest active workload
             User leastLoaded = engineers.stream()
-                .min(java.util.Comparator.comparingInt(eng ->
+                .min(Comparator.comparingInt(eng ->
                     masterIssueRepository.findByAssignedToIdOrderBySeverityScoreDesc(eng.getId()).size()
                 ))
                 .orElse(engineers.get(0));
 
-            ticketWorkflowService.assignTicketToEngineer(
-                ticket.getId(),
-                leastLoaded.getId(),
-                admin,
-                "Auto-dispatched via Load-Balanced AI Scheduler (lowest active crew queue)"
-            );
+            MasterIssue.Status oldStatus = ticket.getStatus();
+            ticket.setAssignedTo(leastLoaded);
+            ticket.setStatus(MasterIssue.Status.ASSIGNED);
+            masterIssueRepository.save(ticket);
+
+            User actor = admin != null ? admin : leastLoaded;
+            issueLogRepository.save(IssueLog.builder()
+                .masterIssue(ticket)
+                .actor(actor)
+                .oldStatus(oldStatus)
+                .newStatus(MasterIssue.Status.ASSIGNED)
+                .remarks("Auto-dispatched to " + leastLoaded.getName() + " via Load-Balanced AI Scheduler")
+                .build());
+
             dispatched++;
         }
 

@@ -6,6 +6,7 @@ import axiosClient from "../api/axiosClient";
 export default function SuperAdminPage() {
   const [analytics, setAnalytics] = useState(null);
   const [scorecards, setScorecards] = useState([]);
+  const [insights, setInsights] = useState([]);
   const [users, setUsers] = useState([]);
   const [seeding, setSeeding] = useState(false);
   const [staffForm, setStaffForm] = useState({
@@ -17,14 +18,16 @@ export default function SuperAdminPage() {
   });
 
   const loadData = async () => {
-    const [anaRes, scRes, usrRes] = await Promise.all([
+    const [anaRes, scRes, usrRes, insRes] = await Promise.all([
       axiosClient.get("/admin/analytics"),
       axiosClient.get("/admin/ward-scorecards"),
       axiosClient.get("/admin/users"),
+      axiosClient.get("/admin/predictive-insights"),
     ]);
     setAnalytics(anaRes.data);
     setScorecards(scRes.data);
     setUsers(usrRes.data);
+    setInsights(insRes.data);
   };
 
   useEffect(() => {
@@ -131,6 +134,38 @@ export default function SuperAdminPage() {
           <div className="bg-white p-5 rounded-xl border border-slate-200">
             <div className="text-xs font-bold uppercase text-amber-600">Workload Saved</div>
             <div className="text-3xl font-bold text-amber-600 mt-1">{analytics.deduplicationRatePercent}%</div>
+          </div>
+        </div>
+      )}
+
+      {/* Predictive Preventive Maintenance Advisory */}
+      {insights.length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Zap className="w-5 h-5 text-amber-500" /> Predictive Ward Infrastructure & Preventive Budget Advisory
+            </h2>
+            <span className="text-xs text-slate-500">Generated from Spatial-Lexical Cluster Density</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {insights.map((ins) => (
+              <div key={ins.wardCode} className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-mono font-bold text-indigo-700">{ins.wardCode} • {ins.wardName}</span>
+                  <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                    ins.riskLevel === "HIGH_INFRASTRUCTURE_STRESS"
+                      ? "bg-red-100 text-red-800"
+                      : "bg-amber-100 text-amber-800"
+                  }`}>
+                    {ins.riskLevel.replaceAll("_", " ")}
+                  </span>
+                </div>
+                <div className="text-xs font-semibold text-slate-700">
+                  Primary Bottleneck: <span className="text-slate-900">{ins.primaryStressDept}</span> ({ins.citizenImpactVolume} citizen reports)
+                </div>
+                <div className="text-xs text-slate-600">{ins.recommendedAction}</div>
+              </div>
+            ))}
           </div>
         </div>
       )}

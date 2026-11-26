@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Send, GitMerge, CheckCircle2, ImagePlus, Star, RotateCcw, Sparkles, QrCode, MapPin, ShieldCheck, Wand2 } from "lucide-react";
+import { Send, GitMerge, CheckCircle2, ImagePlus, Star, RotateCcw, Sparkles, QrCode, MapPin, ShieldCheck, Wand2, Crosshair } from "lucide-react";
 import axiosClient from "../api/axiosClient";
 import IssueMap from "../components/IssueMap";
 import TicketReceiptModal from "../components/TicketReceiptModal";
@@ -47,6 +47,22 @@ export default function CitizenDashboardPage() {
   useEffect(() => {
     loadAll();
   }, []);
+
+  const detectCurrentGps = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocation({
+          lat: Number(pos.coords.latitude.toFixed(6)),
+          lng: Number(pos.coords.longitude.toFixed(6)),
+        });
+      },
+      () => alert("Unable to fetch device GPS. Please allow location permission or click on the map.")
+    );
+  };
 
   const applyPreset = (preset) => {
     setLocation({ lat: preset.lat, lng: preset.lng });
@@ -204,8 +220,17 @@ export default function CitizenDashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <div className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
-            <MapPin className="w-4 h-4 text-blue-600" /> Click anywhere on the map to move the blue pin (Blue circle = 50m duplicate zone)
+          <div className="flex items-center justify-between">
+            <div className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+              <MapPin className="w-4 h-4 text-blue-600" /> Click map to move pin (Blue circle = 50m duplicate zone)
+            </div>
+            <button
+              type="button"
+              onClick={detectCurrentGps}
+              className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold flex items-center gap-1"
+            >
+              <Crosshair className="w-3.5 h-3.5" /> Use My Live GPS
+            </button>
           </div>
           <IssueMap selectedLocation={location} onSelectLocation={setLocation} issues={publicIssues} />
         </div>
@@ -260,7 +285,7 @@ export default function CitizenDashboardPage() {
             <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
               <ImagePlus className="w-4 h-4 text-blue-600" /> 5. Attach Photo Evidence (Optional)
             </label>
-            <input type="file" accept="image/*" onChange={handleUpload} className="text-xs" />
+            <input type="file" accept="image/*" capture="environment" onChange={handleUpload} className="text-xs" />
             {uploading && <span className="text-xs text-blue-600 ml-2">Uploading...</span>}
           </div>
 
