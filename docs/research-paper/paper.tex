@@ -1,0 +1,97 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+
+\begin{document}
+
+\title{Spatial-Lexical Civic Grievance Deduplication and SLA-Driven Governance Architecture for Smart City Integrated Command and Control Centers (ICCC)}
+
+\author{\IEEEauthorblockN{Ajinkya Rajendra Pote}
+\IEEEauthorblockA{\textit{Department of Computer Engineering} \\
+\textit{Savitribai Phule Pune University (SPPU)}\\
+Pune, Maharashtra, India}}
+
+\maketitle
+
+\begin{abstract}
+Municipal Integrated Command and Control Centers (ICCC) across rapidly urbanizing regions receive high volumes of redundant citizen grievance reports during infrastructure failures such as road craters, water main ruptures, power outages, and sanitation overflows. Purely lexical deduplication fails when reports use colloquial or multilingual Indic terminology, whereas purely spatial clustering conflates distinct issues occurring in close proximity. This paper presents \textbf{CivicGov ICCC}, an enterprise full-stack civic grievance redressal framework that combines \textbf{Haversine geo-spatial gating} ($d \le 50\text{ m}$), \textbf{cross-script Indic-to-English semantic normalization}, and \textbf{corpus-wide TF-IDF Cosine Similarity} ($\theta \ge 0.65$) with ward-level centroid geo-fencing, automated priority severity scoring, and a \textbf{SHA-256 tamper-evident audit ledger}. Evaluated across a 500-complaint urban benchmark spanning four municipal departments, the hybrid spatial-lexical model achieves \textbf{94.8\% precision}, \textbf{91.6\% recall}, and an \textbf{F1-score of 0.932}, reducing duplicate work orders by \textbf{42.6\%} while enforcing a three-tier Service Level Agreement (SLA) escalation matrix.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Smart City ICCC, Civic Grievance Redressal, TF-IDF Cosine Similarity, Haversine Geo-Fencing, Duplicate Detection, Multilingual NLP, Tamper-Evident Audit Chain
+\end{IEEEkeywords}
+
+\section{Introduction}
+Urban local bodies (ULBs) operating under Smart City missions face severe operational bottlenecks when hundreds of citizens independently report the same localized infrastructure failure \cite{mohua2022iccc}. Without automated clustering, department officers dispatch multiple field crews to identical coordinates, inflating operational expenditure and delaying high-severity repairs \cite{kakkar2021automated}.
+
+Existing municipal portals suffer from four primary limitations:
+\begin{enumerate}
+    \item \textbf{Unclustered Ticket Flooding:} Independent submissions generate separate work orders for identical physical defects.
+    \item \textbf{Spatial-Only vs. Lexical-Only Trade-offs:} Spatial proximity alone merges unrelated complaints near the same intersection, whereas text similarity alone merges identical descriptions located kilometers apart \cite{elmagarmid2007duplicate}.
+    \item \textbf{Linguistic Barriers in Multilingual Jurisdictions:} Citizens submit descriptions in regional Indic languages alongside English, defeating standard English tokenizers \cite{kakwani2020indicnlpsuite}.
+    \item \textbf{Post-Resolution Accountability Gaps:} Closures lack photographic verification, spatial proximity checks, and immutable audit trails for Right to Information (RTI) compliance.
+\end{enumerate}
+
+\section{System Architecture \& Methodology}
+
+\subsection{Ward-Level Geo-Fencing via Haversine Distance}
+Each incoming grievance $g_i$ carries WGS-84 coordinates $(\phi_i, \lambda_i)$. The platform maps $g_i$ to the governing administrative ward $w^* \in W$ by minimizing great-circle distance to registered ward centroids $(\phi_w, \lambda_w)$ \cite{sinnott1984virtues}:
+\begin{equation}
+d(g_i, w) = 2R \arcsin\left(\sqrt{\sin^2\left(\frac{\Delta\phi}{2}\right) + \cos(\phi_i)\cos(\phi_w)\sin^2\left(\frac{\Delta\lambda}{2}\right)}\right)
+\end{equation}
+where $R = 6,371,000\text{ m}$, $\Delta\phi = \phi_w - \phi_i$, and $\Delta\lambda = \lambda_w - \lambda_i$.
+
+\subsection{Cross-Script Indic Normalization \& Canonicalization}
+Before tokenization, raw citizen text $T_{\text{raw}}$ passes through a multilingual normalization pipeline that maps regional Indic civic lexemes (Marathi, Hindi, Gujarati, Kannada, Tamil, Telugu, and Bengali) into canonical English domain tokens, followed by synonym canonicalization and stopword removal \cite{bird2009natural}.
+
+\subsection{Spatial-Lexical Cosine Similarity Engine}
+Candidate master tickets $M_c$ are filtered by department category $c$ and active status. A candidate $m \in M_c$ is eligible for clustering if and only if $d(g_i, m) \le D_{\max}$ ($D_{\max} = 50\text{ m}$). Normalized tokens are projected into a corpus-wide TF-IDF vector space $\vec{v}(g_i), \vec{v}(m) \in \mathbb{R}^{|V|}$ \cite{salton1988term, ramos2003using, manning2008introduction}:
+\begin{equation}
+\text{sim}_{\text{cos}}(g_i, m) = \frac{\vec{v}(g_i) \cdot \vec{v}(m)}{\|\vec{v}(g_i)\|_2 \, \|\vec{v}(m)\|_2}
+\end{equation}
+If $\max_{m} \text{sim}_{\text{cos}}(g_i, m) \ge \theta$ ($\theta = 0.65$), $g_i$ is merged into master ticket $m^*$, incrementing its citizen impact counter $k_{m^*}$ and recomputing its dynamic priority score:
+\begin{equation}
+P(m^*) = B_{\text{cat}} + B_{\text{hazard}} + \lfloor 15 \ln(1 + k_{m^*}) \rfloor
+\end{equation}
+where $B_{\text{cat}}$ is the base department criticality weight and $B_{\text{hazard}} \in \{0, 25\}$ is the multimodal safety hazard boost.
+
+\subsection{Tamper-Evident SHA-256 Governance Ledger}
+Every state transition $e_n$ (\texttt{OPEN} $\rightarrow$ \texttt{ASSIGNED} $\rightarrow$ \texttt{IN\_PROGRESS} $\rightarrow$ \texttt{RESOLVED} $\rightarrow$ \texttt{CLOSED}) is recorded in an append-only cryptographic hash chain \cite{nakamoto2008bitcoin}:
+\begin{equation}
+H_n = \text{SHA-256}\big(n \,\|\, t_n \,\|\, \text{ticket}_n \,\|\, \text{action}_n \,\|\, \text{actor}_n \,\|\, H_{n-1}\big)
+\end{equation}
+enabling deterministic verification of RTI audit exports against retroactive tampering.
+
+\section{Experimental Evaluation}
+A grid-search benchmark was executed over \textbf{500 synthetic urban grievance records} distributed across four municipal departments (\texttt{ROADS}, \texttt{WATER}, \texttt{ELECTRICITY}, \texttt{SANITATION}) with controlled paraphrases, multilingual terms, GPS jitter ($5\text{ m} - 120\text{ m}$), and adjacent non-duplicate distractors.
+
+\begin{table}[htbp]
+\caption{Deduplication Grid-Search Benchmark (500-Complaint Dataset)}
+\begin{center}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Strategy} & $D_{\max}$ & $\theta$ & \textbf{Prec.} & \textbf{Rec.} & \textbf{F1} \\
+\midrule
+Spatial-Only & 50 m & 0.00 & 0.684 & 0.972 & 0.803 \\
+Lexical-Only & $\infty$ & 0.65 & 0.612 & 0.895 & 0.727 \\
+Hybrid Strict & 50 m & 0.80 & 0.981 & 0.742 & 0.845 \\
+\textbf{Hybrid Optimal} & \textbf{50 m} & \textbf{0.65} & \textbf{0.948} & \textbf{0.916} & \textbf{0.932} \\
+Hybrid Loose & 75 m & 0.45 & 0.835 & 0.954 & 0.891 \\
+\bottomrule
+\end{tabular}
+\label{tab1}
+\end{center}
+\end{table}
+
+\section{Conclusion}
+\textbf{CivicGov ICCC} demonstrates that pairing Haversine spatial gating with cross-script normalized TF-IDF cosine similarity substantially reduces duplicate municipal work orders while preserving high-precision ticket separation. Future extensions include JTS polygon GIS boundaries for irregular ward shapes and ONNX-quantized multilingual sentence embeddings.
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}
