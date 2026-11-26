@@ -1,0 +1,39 @@
+version: "3.9"
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: civic-mysql
+    environment:
+      MYSQL_DATABASE: civic_grievance_db
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root1234}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  backend:
+    build: ./backend
+    container_name: civic-backend
+    depends_on:
+      - mysql
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/civic_grievance_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Kolkata
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root1234}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:-CivicClusterEnterpriseSecretKeyForJwtSigning2026MustBeLongEnough}
+    ports:
+      - "8080:8080"
+    volumes:
+      - uploads_data:/app/uploads
+
+  frontend:
+    build: ./frontend
+    container_name: civic-frontend
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+
+volumes:
+  mysql_data:
+  uploads_data:
