@@ -11,6 +11,7 @@ import com.civic.grievance.repository.UserRepository;
 import com.civic.grievance.repository.WardRepository;
 import com.civic.grievance.service.BenchmarkService;
 import com.civic.grievance.service.DeduplicationService;
+import com.civic.grievance.service.TicketWorkflowService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -35,6 +36,7 @@ public class AdminController {
     private final PasswordEncoder passwordEncoder;
     private final BenchmarkService benchmarkService;
     private final DeduplicationService deduplicationService;
+    private final TicketWorkflowService ticketWorkflowService;
 
     @Data
     public static class CreateStaffRequest {
@@ -156,6 +158,39 @@ public class AdminController {
     @GetMapping("/benchmark")
     public ResponseEntity<List<BenchmarkService.ThresholdExperimentResult>> runResearchBenchmark() {
         return ResponseEntity.ok(benchmarkService.runGridSearchBenchmark());
+    }
+
+    @PostMapping("/auto-dispatch")
+    public ResponseEntity<?> autoDispatchOpenTickets(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal User admin) {
+        var openTickets = masterIssueRepository.findByStatusInOrderBySeverityScoreDesc(
+            List.of(MasterIssue.Status.OPEN, MasterIssue.Status.REOPENED)
+        );
+        int dispatched = 0;
+
+        for (MasterIssue ticket : openTickets) {
+            if (ticket.getCategory() == MasterIssue.Category.OTHER) continue;
+            User.Department dept = User.Department.valueOf(ticket.getCategory().name());
+            var engineers = userRepository.findByRoleAndDepartmentAndActiveTrue(User.Role.FIELD_ENGINEER, dept);
+            if (engineers.isEmpty()) continue;
+
+            // Pick Field Engineer with lowest active workload
+            User leastLoaded = engineers.stream()
+                .min(java.util.Comparator.comparingInt(eng ->
+                    masterIssueRepository.findByAssignedToIdOrderBySeverityScoreDesc(eng.getId()).size()
+                ))
+                .orElse(engineers.get(0));
+
+            ticketWorkflowService.assignTicketToEngineer(
+                ticket.getId(),
+                leastLoaded.getId(),
+                admin,
+                "Auto-dispatched via Load-Balanced AI Scheduler (lowest active crew queue)"
+            );
+            dispatched++;
+        }
+
+        return ResponseEntity.ok(Map.of("dispatchedCount", dispatched));
     }
 
     @PostMapping("/seed-demo")

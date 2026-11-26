@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from "recharts";
-import { ShieldAlert, Database, Users, Layers, UserPlus, Download, Building2 } from "lucide-react";
+import { ShieldAlert, Database, Users, Layers, UserPlus, Download, Building2, Zap } from "lucide-react";
 import axiosClient from "../api/axiosClient";
 
 export default function SuperAdminPage() {
@@ -40,6 +40,12 @@ export default function SuperAdminPage() {
     document.body.appendChild(a);
     a.click();
     a.remove();
+  };
+
+  const handleAutoDispatch = async () => {
+    const res = await axiosClient.post("/admin/auto-dispatch");
+    alert(`Load-Balanced Scheduler dispatched ${res.data.dispatchedCount} ticket(s) to field crews!`);
+    loadData();
   };
 
   const handleSeed = async () => {
@@ -86,6 +92,12 @@ export default function SuperAdminPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <button
+            onClick={handleAutoDispatch}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold flex items-center gap-2"
+          >
+            <Zap className="w-4 h-4" /> AI Auto-Dispatch Crews
+          </button>
           <button
             onClick={handleExportCsv}
             className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-semibold flex items-center gap-2"
@@ -167,23 +179,45 @@ export default function SuperAdminPage() {
         </div>
       </div>
 
-      {analytics && (
-        <div className="bg-white p-6 rounded-xl border border-slate-200">
-          <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <Layers className="w-5 h-5 text-blue-600" /> City-Wide Ticket Reduction Chart
-          </h2>
-          <div className="h-60 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} layout="vertical" margin={{ left: 30, right: 30 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" allowDecimals={false} />
-                <YAxis type="category" dataKey="name" width={160} tick={{ fontSize: 12 }} />
-                <Tooltip />
-                <Bar dataKey="count" radius={[0, 6, 6, 0]}>
-                  {chartData.map((entry, idx) => <Cell key={idx} fill={entry.color} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+      {analytics && analytics.issuesByCategory && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white p-6 rounded-xl border border-slate-200">
+            <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <Layers className="w-5 h-5 text-blue-600" /> City-Wide Ticket Reduction Chart
+            </h2>
+            <div className="h-60 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} layout="vertical" margin={{ left: 20, right: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" allowDecimals={false} />
+                  <YAxis type="category" dataKey="name" width={150} tick={{ fontSize: 12 }} />
+                  <Tooltip />
+                  <Bar dataKey="count" radius={[0, 6, 6, 0]}>
+                    {chartData.map((entry, idx) => <Cell key={idx} fill={entry.color} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl border border-slate-200">
+            <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-indigo-600" /> Master Dockets by Municipal Department
+            </h2>
+            <div className="h-60 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={Object.entries(analytics.issuesByCategory).map(([dept, count]) => ({ dept, count }))}
+                  margin={{ left: 0, right: 20 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="dept" tick={{ fontSize: 12 }} />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#4f46e5" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
       )}
